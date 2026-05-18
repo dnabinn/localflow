@@ -33,7 +33,7 @@ export function ConnectedPlatforms({ count }: ConnectedPlatformsProps) {
               <Icon className={`h-4 w-4 ${p.color}`} />
               <span className="text-sm flex-1">{p.name}</span>
               <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
-                <Link href="/settings/integrations">
+                <Link href="/settings?tab=integrations">
                   <Plus className="h-3 w-3" />
                 </Link>
               </Button>

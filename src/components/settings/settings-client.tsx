@@ -77,9 +77,10 @@ interface SettingsClientProps {
     locations: { id: string; name: string; address: string | null }[];
   }[];
   userEmail: string;
+  defaultTab?: string;
 }
 
-export function SettingsClient({ workspace, businesses, userEmail }: SettingsClientProps) {
+export function SettingsClient({ workspace, businesses, userEmail, defaultTab = "workspace" }: SettingsClientProps) {
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
@@ -100,7 +101,7 @@ export function SettingsClient({ workspace, businesses, userEmail }: SettingsCli
   }
 
   return (
-    <Tabs defaultValue="workspace">
+    <Tabs defaultValue={defaultTab}>
       <TabsList className="mb-6">
         <TabsTrigger value="workspace">Workspace</TabsTrigger>
         <TabsTrigger value="businesses">Businesses</TabsTrigger>

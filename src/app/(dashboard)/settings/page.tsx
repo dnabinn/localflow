@@ -6,7 +6,12 @@ import { SettingsClient } from "@/components/settings/settings-client";
 
 export const metadata: Metadata = { title: "Settings" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -40,6 +45,7 @@ export default async function SettingsPage() {
         workspace={workspaceMember.workspace}
         businesses={workspaceMember.workspace.businesses}
         userEmail={user.email ?? ""}
+        defaultTab={tab ?? "workspace"}
       />
     </div>
   );
