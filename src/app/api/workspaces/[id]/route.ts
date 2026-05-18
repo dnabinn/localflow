@@ -8,14 +8,15 @@ const updateSchema = z.object({
   logoUrl: z.string().url().optional().nullable(),
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const workspace = await prisma.workspace.findFirst({
     where: {
-      id: params.id,
+      id,
       members: { some: { userId: user.id } },
     },
     include: {
@@ -28,13 +29,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ data: workspace });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const member = await prisma.workspaceMember.findFirst({
-    where: { workspaceId: params.id, userId: user.id, role: { in: ["OWNER", "ADMIN"] } },
+    where: { workspaceId: id, userId: user.id, role: { in: ["OWNER", "ADMIN"] } },
   });
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -43,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const workspace = await prisma.workspace.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
 

@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({ reply: z.string().min(1) });
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const item = await prisma.inboxItem.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       reply: parsed.data.reply,
       isResolved: true,
