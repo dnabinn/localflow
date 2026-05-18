@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Building2, MapPin, Facebook, Instagram, Zap, Plus, ExternalLink, ChevronRight,
+  Building2, MapPin, Facebook, Instagram, Zap, Plus, ExternalLink, ChevronRight, CheckCircle2, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,20 +40,20 @@ const PLATFORMS = [
   {
     provider: "FACEBOOK",
     name: "Facebook Pages",
-    description: "Connect your Facebook business pages to publish posts and manage comments.",
+    description: "Connect your Facebook business page to publish posts and manage comments.",
     icon: Facebook,
     color: "text-blue-600",
     bg: "bg-blue-50 dark:bg-blue-950/40",
-    comingSoon: false,
+    connectPath: "/api/auth/facebook/connect",
   },
   {
     provider: "INSTAGRAM",
     name: "Instagram Business",
-    description: "Connect Instagram to schedule posts, reels, and carousels.",
+    description: "Connects automatically when you link a Facebook Page that has an Instagram Business account.",
     icon: Instagram,
     color: "text-pink-600",
     bg: "bg-pink-50 dark:bg-pink-950/40",
-    comingSoon: false,
+    connectPath: null, // via Facebook
   },
   {
     provider: "GOOGLE_BUSINESS",
@@ -61,7 +62,7 @@ const PLATFORMS = [
     icon: MapPin,
     color: "text-green-600",
     bg: "bg-green-50 dark:bg-green-950/40",
-    comingSoon: false,
+    connectPath: "/api/auth/google/connect",
   },
 ];
 
@@ -73,7 +74,7 @@ interface SettingsClientProps {
     brandTone: string;
     timezone: string;
     preferredLanguage: string;
-    socialAccounts: { provider: string; isConnected: boolean; name: string | null }[];
+    socialAccounts: { id: string; provider: string; isConnected: boolean; name: string | null }[];
     locations: { id: string; name: string; address: string | null }[];
   }[];
   userEmail: string;
@@ -81,9 +82,21 @@ interface SettingsClientProps {
 }
 
 export function SettingsClient({ workspace, businesses, userEmail, defaultTab = "workspace" }: SettingsClientProps) {
+  const router = useRouter();
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+
+  async function disconnect(accountId: string) {
+    setDisconnecting(accountId);
+    try {
+      await fetch(`/api/social-accounts/${accountId}/disconnect`, { method: "POST" });
+      router.refresh();
+    } finally {
+      setDisconnecting(null);
+    }
+  }
 
   async function saveWorkspace() {
     setSaving(true);
@@ -267,35 +280,53 @@ export function SettingsClient({ workspace, businesses, userEmail, defaultTab = 
                       <Icon className={cn("h-5 w-5", platform.color)} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-medium">{platform.name}</h4>
-                        {platform.comingSoon && (
-                          <Badge variant="secondary" className="text-xs">Coming soon</Badge>
-                        )}
-                      </div>
+                      <h4 className="text-sm font-medium">{platform.name}</h4>
                       <p className="text-xs text-muted-foreground mt-0.5">{platform.description}</p>
 
-                      {businesses.length > 0 && !platform.comingSoon && (
+                      {businesses.length === 0 ? (
+                        <p className="text-xs text-muted-foreground mt-3 italic">
+                          Add a business first to connect accounts.
+                        </p>
+                      ) : (
                         <div className="mt-3 space-y-2">
                           {businesses.map((biz) => {
                             const account = biz.socialAccounts.find(
                               (a) => a.provider === platform.provider
                             );
+                            const isDisconnecting = disconnecting === account?.id;
                             return (
                               <div key={biz.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2">
                                 <span className="text-xs font-medium">{biz.name}</span>
                                 {account?.isConnected ? (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs text-emerald-600">Connected as {account.name}</span>
-                                    <Button variant="ghost" size="sm" className="h-6 text-xs">
-                                      Disconnect
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                    <span className="text-xs text-emerald-600">{account.name}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 text-xs text-muted-foreground"
+                                      disabled={isDisconnecting}
+                                      onClick={() => disconnect(account.id)}
+                                    >
+                                      {isDisconnecting ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : "Disconnect"}
                                     </Button>
                                   </div>
-                                ) : (
-                                  <Button size="sm" className="h-6 text-xs gap-1" variant="outline">
-                                    <ExternalLink className="h-3 w-3" />
-                                    Connect
+                                ) : platform.connectPath ? (
+                                  <Button
+                                    size="sm"
+                                    className="h-6 text-xs gap-1"
+                                    variant="outline"
+                                    asChild
+                                  >
+                                    <a href={`${platform.connectPath}?businessId=${biz.id}`}>
+                                      <ExternalLink className="h-3 w-3" />
+                                      Connect
+                                    </a>
                                   </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Via Facebook</span>
                                 )}
                               </div>
                             );
