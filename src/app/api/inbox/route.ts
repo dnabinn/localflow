@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,6 +50,12 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const item = await prisma.inboxItem.create({ data: parsed.data });
+  const { metadata, ...rest } = parsed.data;
+  const item = await prisma.inboxItem.create({
+    data: {
+      ...rest,
+      ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {}),
+    },
+  });
   return NextResponse.json({ data: item }, { status: 201 });
 }
