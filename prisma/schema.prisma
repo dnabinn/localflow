@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Workspace & Business ────────────────────────────────────────────────────
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members    WorkspaceMember[]
+  businesses Business[]
+  posts      Post[]
+  inboxItems InboxItem[]
+  mediaFiles MediaFile[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String          @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole   @default(MEMBER)
+  createdAt   DateTime        @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Business {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  name              String
+  logoUrl           String?
+  timezone          String   @default("America/New_York")
+  preferredLanguage String   @default("en")
+  brandTone         BrandTone @default(FRIENDLY)
+  website           String?
+  address           String?
+  phone             String?
+  category          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  locations         Location[]
+  socialAccounts    SocialAccount[]
+  posts             Post[]
+  inboxItems        InboxItem[]
+
+  @@map("businesses")
+}
+
+enum BrandTone {
+  CALM
+  LUXURY
+  TRADITIONAL
+  MODERN
+  FRIENDLY
+  PROFESSIONAL
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  address    String?
+  phone      String?
+  timezone   String?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("locations")
+}
+
+// ─── Social Accounts & Integrations ─────────────────────────────────────────
+
+model SocialAccount {
+  id           String         @id @default(cuid())
+  businessId   String
+  provider     SocialProvider
+  providerAccountId String?
+  name         String?
+  avatarUrl    String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  isConnected  Boolean        @default(false)
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  posts    PostTarget[]
+
+  @@unique([businessId, provider])
+  @@map("social_accounts")
+}
+
+enum SocialProvider {
+  FACEBOOK
+  INSTAGRAM
+  GOOGLE_BUSINESS
+  TIKTOK
+}
+
+// ─── Content & Posts ─────────────────────────────────────────────────────────
+
+model Post {
+  id          String     @id @default(cuid())
+  workspaceId String
+  businessId  String
+  caption     String
+  hashtags    String[]
+  cta         String?
+  postType    PostType   @default(SINGLE_IMAGE)
+  status      PostStatus @default(DRAFT)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  errorLog    String?
+  aiGenerated Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace  Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  targets    PostTarget[]
+  media      PostMedia[]
+
+  @@map("posts")
+}
+
+enum PostType {
+  SINGLE_IMAGE
+  CAROUSEL
+  REEL
+  VIDEO
+  TEXT
+  GOOGLE_UPDATE
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+model PostTarget {
+  id              String        @id @default(cuid())
+  postId          String
+  socialAccountId String
+  status          PostStatus    @default(DRAFT)
+  publishedAt     DateTime?
+  providerPostId  String?
+  errorLog        String?
+
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@map("post_targets")
+}
+
+model PostMedia {
+  id        String    @id @default(cuid())
+  postId    String
+  fileId    String
+  sortOrder Int       @default(0)
+
+  post Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file MediaFile @relation(fields: [fileId], references: [id])
+
+  @@map("post_media")
+}
+
+// ─── Media Library ───────────────────────────────────────────────────────────
+
+model MediaFile {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  url         String
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  duration    Float?
+  storagePath String
+  altText     String?
+  tags        String[]
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  postMedia PostMedia[]
+
+  @@map("media_files")
+}
+
+// ─── Inbox ───────────────────────────────────────────────────────────────────
+
+model InboxItem {
+  id               String          @id @default(cuid())
+  workspaceId      String
+  businessId       String
+  provider         SocialProvider
+  providerItemId   String?
+  authorName       String
+  authorAvatarUrl  String?
+  message          String
+  sentiment        Sentiment       @default(NEUTRAL)
+  isResolved       Boolean         @default(false)
+  isRead           Boolean         @default(false)
+  aiSuggestedReply String?
+  reply            String?
+  repliedAt        DateTime?
+  receivedAt       DateTime        @default(now())
+  metadata         Json?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("inbox_items")
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+// ─── AI Usage Log ────────────────────────────────────────────────────────────
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  businessId   String?
+  feature      String
+  promptTokens Int      @default(0)
+  outputTokens Int      @default(0)
+  model        String
+  createdAt    DateTime @default(now())
+
+  @@map("ai_usage_logs")
+}
