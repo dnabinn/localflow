@@ -1,3 +1,4 @@
+import type { CompletionUsage } from "openai/resources/completions";
 import { openai } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 
@@ -161,7 +162,7 @@ async function logAiUsage({
   workspaceId: string;
   businessId?: string;
   feature: string;
-  usage: OpenAI.CompletionUsage | undefined;
+  usage: CompletionUsage | undefined;
 }) {
   try {
     await prisma.aiUsageLog.create({
