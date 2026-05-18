@@ -1,5 +1,5 @@
 import type { CompletionUsage } from "openai/resources/completions";
-import { openai } from "@/lib/openai";
+import { getOpenAIClient } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -61,7 +61,7 @@ Requirements:
 - No placeholder text or brackets
 - Just the caption text, nothing else`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAIClient().chat.completions.create({
     model: DEFAULT_MODEL,
     messages: [{ role: "user", content: prompt }],
     max_tokens: 400,
@@ -91,7 +91,7 @@ Caption: "${caption}"
 
 Return only the hashtags, one per line, starting with #. No explanations.`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAIClient().chat.completions.create({
     model: DEFAULT_MODEL,
     messages: [{ role: "user", content: prompt }],
     max_tokens: 200,
@@ -132,7 +132,7 @@ Write a professional, empathetic, and helpful reply that:
 
 Just the reply text, nothing else.`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAIClient().chat.completions.create({
     model: DEFAULT_MODEL,
     messages: [{ role: "user", content: prompt }],
     max_tokens: 300,
