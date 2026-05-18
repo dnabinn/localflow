@@ -391,6 +391,3 @@ export function SettingsClient({ workspace, businesses, userEmail }: SettingsCli
   );
 }
 
-function Label({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <label className={cn("text-sm font-medium leading-none", className)}>{children}</label>;
-}

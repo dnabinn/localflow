@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
 
 interface InboxItemData {
@@ -303,6 +304,3 @@ export function InboxClient({ items }: InboxClientProps) {
   );
 }
 
-function Label({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <label className={cn("text-sm font-medium leading-none", className)}>{children}</label>;
-}
